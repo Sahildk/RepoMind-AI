@@ -128,6 +128,8 @@ export default function Workspace() {
   const [selectedManifest, setSelectedManifest] = useState<string | null>(null);
   const [manifestContent, setManifestContent] = useState<string>("");
   const [manifestLoading, setManifestLoading] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   // Terminal log simulator states
   const [logs, setLogs] = useState<LogLine[]>([]);
@@ -147,14 +149,44 @@ export default function Workspace() {
     localStorage.setItem("repomind-theme", nextTheme);
   };
 
-  // Load saved credentials from localStorage
+  const handleCopyLink = () => {
+    if (!result) return;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?repo=${encodeURIComponent(repoUrl)}&branch=${encodeURIComponent(branch || result.branch)}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const handleCopyCode = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(result.mermaid);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  // Load saved credentials from localStorage & check query parameters
   useEffect(() => {
     const savedToken = localStorage.getItem("repomind_github_token");
     const savedKey = localStorage.getItem("repomind_gemini_key");
     const savedUrl = localStorage.getItem("repomind_last_url");
     if (savedToken) setGithubToken(savedToken);
     if (savedKey) setGeminiApiKey(savedKey);
-    if (savedUrl) setRepoUrl(savedUrl);
+    
+    // Check URL search parameters for sharing permalinks
+    const params = new URLSearchParams(window.location.search);
+    const urlParam = params.get("repo") || params.get("url");
+    const branchParam = params.get("branch");
+    
+    if (urlParam) {
+      setRepoUrl(urlParam);
+      if (branchParam) setBranch(branchParam);
+      // Wait for credentials load from localStorage before auto analyzing
+      setTimeout(() => {
+        handleAnalyze(undefined, urlParam, branchParam || undefined);
+      }, 100);
+    } else if (savedUrl) {
+      setRepoUrl(savedUrl);
+    }
   }, []);
 
   // Fetch dependency manifest file content when selected
@@ -246,10 +278,11 @@ export default function Workspace() {
     }
   };
 
-  const handleAnalyze = async (e?: React.FormEvent, customUrl?: string) => {
+  const handleAnalyze = async (e?: React.FormEvent, customUrl?: string, customBranch?: string) => {
     if (e) e.preventDefault();
     
     const targetUrl = customUrl || repoUrl;
+    const targetBranch = customBranch || branch;
     if (!targetUrl) {
       setError("Please enter a GitHub repository URL.");
       return;
@@ -290,7 +323,7 @@ export default function Workspace() {
         },
         body: JSON.stringify({
           repo_url: targetUrl,
-          branch: branch || null,
+          branch: targetBranch || null,
           github_token: githubToken || null,
           gemini_api_key: geminiApiKey || null,
         }),
@@ -740,17 +773,66 @@ export default function Workspace() {
                {/* Tab 1: Architecture Map (Mermaid) */}
               {activeTab === "map" && (
                 <div className="w-full h-full flex flex-col relative">
-                  <button
-                    onClick={() => setIsFullscreen(true)}
-                    className={`absolute top-3.5 right-18 z-30 p-2 border rounded-lg transition ${
-                      theme === "light"
-                        ? "bg-white border-zinc-200 hover:bg-zinc-50 text-zinc-500 hover:text-zinc-800"
-                        : "bg-zinc-950/80 border-zinc-900 hover:bg-zinc-900 text-zinc-500 hover:text-zinc-355"
-                    }`}
-                    title="View Fullscreen"
-                  >
-                    <Maximize2 className="w-4 h-4" />
-                  </button>
+                  <div className="absolute top-3.5 right-4 z-30 flex items-center gap-2">
+                    {/* Copy Mermaid Code */}
+                    <button
+                      onClick={handleCopyCode}
+                      className={`p-2 border rounded-lg flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider transition cursor-pointer ${
+                        theme === "light"
+                          ? "bg-white border-zinc-200 hover:bg-zinc-50 text-zinc-600 hover:text-zinc-800"
+                          : "bg-zinc-950/80 border-zinc-900 hover:bg-zinc-900 text-zinc-500 hover:text-zinc-300"
+                      }`}
+                      title="Copy raw Mermaid.js graph code"
+                    >
+                      {copiedCode ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>Copied Code</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileCode className="w-3.5 h-3.5" />
+                          <span>Copy Graph Code</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* Share Permalink */}
+                    <button
+                      onClick={handleCopyLink}
+                      className={`p-2 border rounded-lg flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider transition cursor-pointer ${
+                        theme === "light"
+                          ? "bg-white border-zinc-200 hover:bg-zinc-50 text-zinc-600 hover:text-zinc-800"
+                          : "bg-zinc-950/80 border-zinc-900 hover:bg-zinc-900 text-zinc-500 hover:text-zinc-300"
+                      }`}
+                      title="Copy a shareable link to this mapping"
+                    >
+                      {copiedLink ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>Link Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Globe className="w-3.5 h-3.5" />
+                          <span>Share Map</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* Fullscreen Button */}
+                    <button
+                      onClick={() => setIsFullscreen(true)}
+                      className={`p-2 border rounded-lg transition cursor-pointer ${
+                        theme === "light"
+                          ? "bg-white border-zinc-200 hover:bg-zinc-50 text-zinc-500 hover:text-zinc-800"
+                          : "bg-zinc-950/80 border-zinc-900 hover:bg-zinc-900 text-zinc-500 hover:text-zinc-300"
+                      }`}
+                      title="View Fullscreen"
+                    >
+                      <Maximize2 className="w-4 h-4" />
+                    </button>
+                  </div>
                   <div className="flex-1 flex flex-col">
                     <MermaidRenderer chart={result.mermaid} theme={theme} />
                   </div>
