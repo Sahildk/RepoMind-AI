@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #020203;
+  --foreground: #f4f4f6;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, sans-serif;
+}
+
+/* Awwwards Dot-Matrix Grid Background */
+.awwwards-grid {
+  background-size: 16px 16px;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+}
+
+/* Technical Blueprint Grid Overlay */
+.blueprint-overlay {
+  background-size: 80px 80px;
+  background-image: 
+    linear-gradient(to right, rgba(234, 88, 12, 0.006) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(234, 88, 12, 0.006) 1px, transparent 1px);
+}
+
+/* Glow Card Animation & Effects */
+.glow-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.glow-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.03), transparent 50%, rgba(255, 255, 255, 0.01));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.glow-card:hover::before {
+  background: linear-gradient(to bottom right, rgba(234, 88, 12, 0.15), transparent 50%, rgba(251, 191, 36, 0.08));
+}
+
+/* HIDE NEXT.JS DEV INDICATOR BADGE (COMPREHENSIVE SELECTORS FOR NESTED PORTALS/SHADOW DOMS) */
+next-route-announcer,
+next-static-indicator,
+next-dev-portal,
+nextjs-portal,
+#nextjs-portal,
+#next-static-indicator,
+.next-static-indicator,
+[data-nextjs-scroll-focus-boundary],
+[id^="__next"],
+[id*="next"],
+[class*="next-static-indicator"],
+[class*="next-dev-portal"],
+nextjs-static-indicator {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  z-index: -9999 !important;
+  height: 0 !important;
+  width: 0 !important;
+}
+
+/* Premium Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #020203;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #121215;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #1f1f23;
+}
+
+/* Light Theme Scrollbars and Layout Overrides */
+.theme-light .awwwards-grid {
+  background-image: radial-gradient(circle, rgba(24, 24, 27, 0.03) 1px, transparent 1px);
+}
+
+.theme-light .blueprint-overlay {
+  background-image: 
+    linear-gradient(to right, rgba(24, 24, 27, 0.015) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(24, 24, 27, 0.015) 1px, transparent 1px);
+}
+
+.theme-light::-webkit-scrollbar-track,
+.theme-light ::-webkit-scrollbar-track {
+  background: #f8f8fa;
+}
+
+.theme-light::-webkit-scrollbar-thumb,
+.theme-light ::-webkit-scrollbar-thumb {
+  background: #e4e4e7;
+}
+
+.theme-light::-webkit-scrollbar-thumb:hover,
+.theme-light ::-webkit-scrollbar-thumb:hover {
+  background: #d4d4d8;
+}
