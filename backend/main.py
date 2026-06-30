@@ -18,11 +18,16 @@ app = FastAPI(title="The 7-Hour Architecture API")
 # Configure CORS so Next.js frontend can call this backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For local hackathon development, allow all origins
-    allow_credentials=True,
+    allow_origins=["*"],  # Allow all origins for the workspace console
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+def read_root():
+    return {"status": "ok", "message": "RepoMind AI Backend API is active. Access /health for status."}
+
 
 # Noise filtering constants
 NOISE_DIRS = {
