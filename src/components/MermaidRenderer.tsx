@@ -2,14 +2,25 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import mermaid from "mermaid";
-import { Copy, Download, RefreshCw, AlertTriangle, Check } from "lucide-react";
+import { Copy, Download, RefreshCw, AlertTriangle, Check, FileImage, Globe, Maximize2, Minimize2 } from "lucide-react";
 
 interface MermaidRendererProps {
   chart: string;
   theme?: "light" | "dark";
+  repoUrl?: string;
+  branch?: string;
+  isFullscreen?: boolean;
+  onFullscreenToggle?: () => void;
 }
 
-export default function MermaidRenderer({ chart, theme = "dark" }: MermaidRendererProps) {
+export default function MermaidRenderer({ 
+  chart, 
+  theme = "dark",
+  repoUrl,
+  branch,
+  isFullscreen = false,
+  onFullscreenToggle
+}: MermaidRendererProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +43,7 @@ export default function MermaidRenderer({ chart, theme = "dark" }: MermaidRender
           securityLevel: "strict",
           flowchart: {
             useMaxWidth: true,
-            htmlLabels: true,
+            htmlLabels: false,
             curve: "basis",
           },
           themeVariables: theme === "light" ? {
@@ -71,6 +82,8 @@ export default function MermaidRenderer({ chart, theme = "dark" }: MermaidRender
     renderChart();
   }, [chart, theme]);
 
+  const [copiedLink, setCopiedLink] = useState(false);
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(chart);
@@ -79,6 +92,14 @@ export default function MermaidRenderer({ chart, theme = "dark" }: MermaidRender
     } catch (err) {
       console.error("Failed to copy text:", err);
     }
+  };
+
+  const handleCopyLink = () => {
+    if (!repoUrl) return;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?repo=${encodeURIComponent(repoUrl)}&branch=${encodeURIComponent(branch || "")}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   const handleDownload = () => {
@@ -96,6 +117,77 @@ export default function MermaidRenderer({ chart, theme = "dark" }: MermaidRender
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Failed to download SVG:", err);
+    }
+  };
+
+  const handleDownloadPng = () => {
+    if (!svg) return;
+    
+    try {
+      const svgElement = ref.current?.querySelector("svg");
+      if (!svgElement) return;
+
+      // Extract bounding dimensions
+      const width = svgElement.viewBox?.baseVal?.width || svgElement.getBoundingClientRect().width || 800;
+      const height = svgElement.viewBox?.baseVal?.height || svgElement.getBoundingClientRect().height || 600;
+
+      // Clone element to set explicit dimensions for canvas rendering
+      const clonedSvg = svgElement.cloneNode(true) as SVGElement;
+      clonedSvg.setAttribute("width", width.toString());
+      clonedSvg.setAttribute("height", height.toString());
+
+      // Clean CSS variable font references from the clone styles to avoid canvas tainting
+      const styleElements = clonedSvg.querySelectorAll("style");
+      styleElements.forEach(style => {
+        let css = style.innerHTML;
+        css = css.replace(/var\(--font-geist-sans\)/g, "system-ui, -apple-system, sans-serif");
+        css = css.replace(/var\(--font-geist-mono\)/g, "monospace");
+        style.innerHTML = css;
+      });
+
+      const svgString = new XMLSerializer().serializeToString(clonedSvg);
+      // Use data-URI format instead of Blob URL for 100% browser compat and sandbox bypass
+      const dataUri = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
+      
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        const scale = 2; // high-res crispness
+        canvas.width = width * scale;
+        canvas.height = height * scale;
+        
+        const context = canvas.getContext("2d");
+        if (context) {
+          // Draw solid background based on current theme to ensure text is visible
+          context.fillStyle = theme === "light" ? "#f8f8fa" : "#020203";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          
+          context.imageSmoothingEnabled = true;
+          context.imageSmoothingQuality = "high";
+          
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          
+          try {
+            const pngURL = canvas.toDataURL("image/png");
+            const downloadLink = document.createElement("a");
+            downloadLink.href = pngURL;
+            downloadLink.download = "repository-architecture.png";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+          } catch (err) {
+            console.error("Canvas export failed:", err);
+          }
+        }
+      };
+      
+      image.onerror = (e) => {
+        console.error("Image loading failed:", e);
+      };
+
+      image.src = dataUri;
+    } catch (err) {
+      console.error("Failed to download PNG:", err);
     }
   };
 
@@ -174,25 +266,76 @@ export default function MermaidRenderer({ chart, theme = "dark" }: MermaidRender
           {/* Copy Raw Code */}
           <button
             onClick={handleCopy}
-            className="p-1.5 bg-zinc-900/80 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-lg transition"
+            className="px-2.5 py-1.5 bg-zinc-900/80 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-lg transition cursor-pointer flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider"
             title="Copy Raw Mermaid Code"
           >
-            {isCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+            {isCopied ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Copied Code</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                <span>Copy Code</span>
+              </>
+            )}
           </button>
+
+          {/* Share Link */}
+          {repoUrl && (
+            <button
+              onClick={handleCopyLink}
+              className="px-2.5 py-1.5 bg-zinc-900/80 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-lg transition cursor-pointer flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider"
+              title="Copy a shareable link to this mapping"
+            >
+              {copiedLink ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Link Copied</span>
+                </>
+              ) : (
+                <>
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>Share Map</span>
+                </>
+              )}
+            </button>
+          )}
 
           {/* Download SVG */}
           <button
             onClick={handleDownload}
-            className="p-1.5 bg-zinc-900/80 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-lg transition"
-            title="Download SVG Diagram"
+            className="p-1.5 bg-zinc-900/80 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-lg transition cursor-pointer"
+            title="Download SVG Diagram (Vector)"
           >
             <Download className="w-4 h-4" />
           </button>
+
+          {/* Download PNG */}
+          <button
+            onClick={handleDownloadPng}
+            className="p-1.5 bg-zinc-900/80 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-lg transition cursor-pointer"
+            title="Download PNG Image (Raster)"
+          >
+            <FileImage className="w-4 h-4" />
+          </button>
+
+          {/* Fullscreen Toggle */}
+          {onFullscreenToggle && (
+            <button
+              onClick={onFullscreenToggle}
+              className="p-1.5 bg-zinc-900/80 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-lg transition cursor-pointer ml-1"
+              title={isFullscreen ? "Close Fullscreen" : "View Fullscreen"}
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+          )}
         </div>
       </div>
 
       {/* SVG Canvas Container */}
-      <div className="flex-1 overflow-auto p-6 flex items-center justify-center min-h-[450px] relative select-none">
+      <div ref={ref} className="flex-1 overflow-auto p-6 flex items-center justify-center min-h-[450px] relative select-none">
         <div 
           style={{ transform: `scale(${zoomScale})`, transformOrigin: "center center" }}
           className="transition-transform duration-200 ease-out max-w-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-auto [&>svg]:max-h-[550px] cursor-grab active:cursor-grabbing"

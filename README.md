@@ -30,11 +30,12 @@ RepoMind AI is a premium, Awwwards-style developer workspace tool that visualize
 
 ## 🌟 Key Features
 
-1. 🗺️ **Interactive Flow Canvas**: Renders fully zoomable and pannable Mermaid.js flowcharts compiled by Gemini 2.5 Flash. Copy raw code or download the flowchart as an SVG image.
-2. 📁 **Topology Tree**: An interactive, nested directory tree explorer that filters out binary assets, cache files, and lock dependencies recursively.
+1. 🗺️ **Interactive Flow Canvas**: Renders fully zoomable and pannable Mermaid.js flowcharts compiled by Gemini 2.5 Flash. Export visuals directly as vectors (**SVG**) or high-res images (**PNG**), copy the raw Mermaid code, or view in solid, opaque Fullscreen.
+2. 📁 **Topology Tree & Code Inspector**: Explore a nested directory structure filtering out binaries, libraries, and caches. **Click any file to slide open the Source File Inspector drawer** and inspect code files directly using GitHub APIs.
 3. 📦 **Manifest Inspector**: A side-by-side split screen viewer that displays package configuration files (such as `package.json` or `requirements.txt`) with line numbers.
-4. 📊 **Scan Metrics**: Track noise reduction ratios, processed nodes count, and scraper pipeline speed metrics in real time.
-5. 🔒 **API First & Secure**: All credentials (Gemini keys, GitHub tokens) are stored locally in the browser's `localStorage` and never saved on the server. Mermaid XSS protection is set to `strict`.
+4. 📊 **Ecosystem Composition Dashboard**: A visual dashboard showcasing codebase maintainability scorecards, language distribution bars, noise reduction ratios, and real-time execution statistics.
+5. 🔗 **Shareable Permalinks**: Share scans directly using permalink parameters (`?repo=<owner>/<repo>&branch=<name>`). Landing on the workspace with parameters automatically triggers codebase scanning.
+6. 🔒 **API First & Secure**: All credentials (Gemini keys, GitHub tokens) are stored locally in the browser's `localStorage` and never saved on the server. Mermaid XSS protection is set to `strict`.
 
 ---
 
